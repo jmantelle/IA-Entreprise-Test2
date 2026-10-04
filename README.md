@@ -1,23 +1,25 @@
-# Todo API
+# API Todo en Python
 
-Petite API REST pour gérer une liste de todos.
+Cette API permet de gérer une liste de tâches (todo).
+
+## Fonctionnalités
+- Créer une tâche
+- Lire toutes les tâches
+- Mettre à jour une tâche
+- Supprimer une tâche
+- Lire une tâche par ID
 
 ## Installation
-
 ```bash
-pip install flask
+pip install -r requirements.txt
 ```
 
 ## Lancement
-
 ```bash
 python app.py
 ```
 
-## Endpoints
-
-- `GET /todos` : Liste tous les todos
-- `POST /todos` : Créer un todo (body: {"title": "..."})
-- `GET /todos/<id>` : Obtenir un todo spécifique
-- `PUT /todos/<id>` : Mettre à jour un todo
-- `DELETE /todos/<id>` : Supprimer un todo
+## Tests
+```bash
+pytest tests/test_app.py
+```

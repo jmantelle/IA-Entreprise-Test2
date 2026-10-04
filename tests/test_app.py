@@ -1,41 +1,49 @@
 import pytest
-from app import app
+from app import app, db, Todo
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    with app.app_context():
+        db.create_all()
     with app.test_client() as client:
         yield client
 
+def test_create_todo(client):
+    response = client.post('/todos', json={'task': 'Test task'})
+    assert response.status_code == 201
+    data = response.get_json()
+    assert 'id' in data
+    assert data['task'] == 'Test task'
+    assert data['done'] is False
+
 def test_get_todos(client):
+    client.post('/todos', json={'task': 'Task 1'})
+    client.post('/todos', json={'task': 'Task 2'})
     response = client.get('/todos')
     assert response.status_code == 200
-    assert response.json == []
-
-def test_create_todo(client):
-    response = client.post('/todos', json={'title': 'Test todo'})
-    assert response.status_code == 201
-    assert 'id' in response.json
-    assert response.json['title'] == 'Test todo'
-    assert response.json['done'] is False
+    data = response.get_json()
+    assert len(data) == 2
 
 def test_get_todo(client):
-    client.post('/todos', json={'title': 'Test todo'})
+    client.post('/todos', json={'task': 'Task 1'})
     response = client.get('/todos/1')
     assert response.status_code == 200
-    assert response.json['title'] == 'Test todo'
+    data = response.get_json()
+    assert data['task'] == 'Task 1'
 
 def test_update_todo(client):
-    client.post('/todos', json={'title': 'Test todo'})
-    response = client.put('/todos/1', json={'title': 'Updated todo', 'done': True})
+    client.post('/todos', json={'task': 'Task 1'})
+    response = client.put('/todos/1', json={'task': 'Updated task', 'done': True})
     assert response.status_code == 200
-    assert response.json['title'] == 'Updated todo'
-    assert response.json['done'] is True
+    data = response.get_json()
+    assert data['task'] == 'Updated task'
+    assert data['done'] is True
 
 def test_delete_todo(client):
-    client.post('/todos', json={'title': 'Test todo'})
+    client.post('/todos', json={'task': 'Task 1'})
     response = client.delete('/todos/1')
-    assert response.status_code == 200
-    assert response.json['result'] is True
+    assert response.status_code == 204
     response = client.get('/todos/1')
     assert response.status_code == 404
