@@ -1,23 +1,27 @@
-## Architecture
+# Architecture de l'API Todo
 
-### Composants
-- **API Flask** : Point d'entrée de l'application
-- **Liste de todos** : Stockage en mémoire des données
-- **Tests unitaires** : Validation des fonctionnalités
+## Rôle
+L'application est une API REST simple pour gérer une liste de tâches (todo).
 
-### Données
-- Les todos sont stockés dans une liste Python en mémoire
-- Chaque todo contient : id (entier), title (chaîne), done (booléen)
+## Composants
+- **API Flask** : Gère les requêtes HTTP et les routes
+- **Base de données SQLite** : Stocke les tâches
+- **Tests pytest** : Vérifie le fonctionnement des endpoints
 
-### Schéma C4
+## Données
+La base de données contient une table `todo` avec les champs : 
+- `id` (entier, clé primaire)
+- `task` (chaîne de 100 caractères, obligatoire)
+- `done` (booléen, par défaut False)
+
+## Schéma C4
 ```mermaid
-container
-  container TodoAPI
-    app Flask
-    database Liste de todos (mémoire)
-  end
-  container Test
-    test pytest
-  end
-end
+C4Container
+    title Architecture de l'API Todo
+    PersonYou User
+    Container flask Flask Application, "API Todo", "Python"
+    Container db SQLite Database, "Todo DB", "SQLite"
+
+    User --> flask: HTTP requests
+    flask --> db: Read/Write operations
 ```

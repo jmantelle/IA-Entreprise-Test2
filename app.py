@@ -1,51 +1,56 @@
 from flask import Flask, jsonify, request
-from uuid import uuid4
+from flask_sqlalchemy import SQLAlchemy
+import os
+
+db = SQLAlchemy()
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todo.db'
+db.init_app(app)
 
-todos = []
+class Todo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    task = db.Column(db.String(100), nullable=False)
+    done = db.Column(db.Boolean, default=False)
+
+    def __repr__(self):
+        return f'<Todo {self.id}>'
 
 @app.route('/todos', methods=['GET'])
 def get_todos():
-    return jsonify(todos)
+    todos = Todo.query.all()
+    return jsonify([{'id': t.id, 'task': t.task, 'done': t.done} for t in todos])
 
 @app.route('/todos', methods=['POST'])
 def create_todo():
     data = request.get_json()
-    todo = {
-        'id': str(uuid4()),
-        'title': data['title'],
-        'done': False
-    }
-    todos.append(todo)
-    return jsonify(todo), 201
+    new_todo = Todo(task=data['task'])
+    db.session.add(new_todo)
+    db.session.commit()
+    return jsonify({'id': new_todo.id, 'task': new_todo.task, 'done': new_todo.done}), 201
 
-@app.route('/todos/<todo_id>', methods=['GET'])
-def get_todo(todo_id):
-    todo = next((t for t in todos if t['id'] == todo_id), None)
-    if not todo:
-        return jsonify({'error': 'Todo not found'}), 404
-    return jsonify(todo)
-
-@app.route('/todos/<todo_id>', methods=['PUT'])
-def update_todo(todo_id):
+@app.route('/todos/<int:id>', methods=['PUT'])
+def update_todo(id):
+    todo = Todo.query.get_or_404(id)
     data = request.get_json()
-    todo = next((t for t in todos if t['id'] == todo_id), None)
-    if not todo:
-        return jsonify({'error': 'Todo not found'}), 404
-    
-    if 'title' in data:
-        todo['title'] = data['title']
-    if 'done' in data:
-        todo['done'] = data['done']
-    
-    return jsonify(todo)
+    todo.task = data.get('task', todo.task)
+    todo.done = data.get('done', todo.done)
+    db.session.commit()
+    return jsonify({'id': todo.id, 'task': todo.task, 'done': todo.done})
 
-@app.route('/todos/<todo_id>', methods=['DELETE'])
-def delete_todo(todo_id):
-    global todos
-    todos = [t for t in todos if t['id'] != todo_id]
-    return jsonify({'result': True})
+@app.route('/todos/<int:id>', methods=['DELETE'])
+def delete_todo(id):
+    todo = Todo.query.get_or_404(id)
+    db.session.delete(todo)
+    db.session.commit()
+    return '', 204
+
+@app.route('/todos/<int:id>', methods=['GET'])
+def get_todo(id):
+    todo = Todo.query.get_or_404(id)
+    return jsonify({'id': todo.id, 'task': todo.task, 'done': todo.done})
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
